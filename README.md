@@ -28,44 +28,44 @@ project that is about to die in few months. However in long-term projects (i.e:
 products) it's essential to write code easy to refactor.
 
 Some words about refactoring:
-  **What?**
-    Refactoring is the action of change code as needed (a lot of books can tell
-    you what and how) in order to reduce the time you need to implement new
-    features.
 
-  **Why?**
-    Because design decisions have a not known expiration date, but believe me,
-    they all expire. So refactoring will help you to make your code-
-      * More maintainable
-      * Easier to understand
-      * Easier to modify
-      * Easier to add new features
+####**What?**
+  Refactoring is the action of change code as needed (a lot of books can tell
+  you what and how) in order to reduce the time you need to implement new
+  features.
 
-  **When?**
-    I like the so named "rule of three" introduced by Martin Fowler: The first
-    time you do something, you just do it. The second time you do something
-    similar, you wince at the duplication, but you do the duplicate thing
-    anyway. The third time you do something similar, you refactor.
+####**Why?**
+  Because design decisions have a not known expiration date, but believe me,
+  they all expire. So refactoring will help you to make your code-
 
-    And the _when_ recommendation also stolen to Martin Fowler:
-      * Refactor When You Add Function
-      * Refactor When You Need to Fix a Bug
-      * Refactor As You Do a Code Review
+  * More maintainable
+  * Easier to understand
+  * Easier to modify
+  * Easier to add new features
 
-  **When not?**
-    When you think "it must scale up to the sky".
-    When it works without issues and you simply think "I can make it better".
-    When you think "it needs optimization" but no one is crying for speed.
-    When there's no related feature, bug or planned enhancement.
+####**When?**
+  I like the so named "rule of three" introduced by Martin Fowler: The first
+  time you do something, you just do it. The second time you do something
+  similar, you wince at the duplication, but you do the duplicate thing
+  anyway. The third time you do something similar, you refactor.
 
-    Unless you're playing yourself or resolving a challenge, changing code that
-    just work without a conrete reason (a.k.a. new features or performance
-    issues in production) is a bad idea.
+  And the _when_ recommendation also stolen to Martin Fowler:
+  * Refactor When You Add Function
+  * Refactor When You Need to Fix a Bug
+  * Refactor As You Do a Code Review
 
-    If you have a lot of dead time and you'd like to justify that time just
-    changing what already works, I suggest you to think in measurable quality
-    improvements like writing tests, documenting scenarios and flows or just
-    reviewing code conventions with a linter.
+####**When not?**
+  When you think "it must scale up to the sky".
+
+  When it works without issues and you simply think "I can make it better".
+
+  When you think "it needs optimization" but no one is crying for speed.
+
+  When there's no related feature, bug or planned enhancement.
+
+  Unless you're playing yourself or resolving a challenge, changing code that
+  just work without a conrete reason (a.k.a. new features or
+  issues in production) is a bad idea.
 
 Overall Architecture
 --------------------
