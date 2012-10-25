@@ -1,0 +1,16 @@
+{
+  "name" : "node-web-modules",
+  "description" : "Yet another MVC Framework with a DDD spirit.",
+  "version" : "0.1.0",
+  "author" : "Matías Mirabelli <lumen.night@gmail.com>",
+  "main" : "./lib/index.js",
+  "dependencies": {
+	  "express": "*",
+    "socket.io": "0.9.10",
+    "winston": "*"
+  },
+  "repository": "https://github.com/seykron/node-web-flow.git",
+  "scripts": {
+    "test": "tap ./test"
+  }
+}

@@ -92,7 +92,7 @@ architecture:
                                   |-----------------------------------|
                  Resolve Route                 Open Transaction
 /--------\    /-----------------\    /------------\        /---------\
-| Client |--->| FrontController |--->| Controller |------->| Command |-->Domain
+| Client |--->|      Module     |--->| Controller |------->| Command |-->Domain
 |        |    |                 |    |            |        \---------/
 |        |    \-----------------/    \------------/             |
 |        |        Write Response          | ^ Commit Transaction|
@@ -177,3 +177,7 @@ This controller expects a simple interface: commands must implement an
     };
   };
 ```
+
+When server starts, the _/module/webapp/_ path will be handled by the
+EchoCommand. Properties in the EchoCommand will be bound to request parameters,
+request body or cookies, depending on the controller and Express configuration.
