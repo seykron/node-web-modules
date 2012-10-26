@@ -148,6 +148,34 @@ It works on top of Express, so general configuration is delegated to Express.
   module.register();
 ```
 
+It's possible to register several modules under the same context path. If the
+composite route collides, it's handled by all modules in the order they're
+registered.
+
+```
+  // Creates a module registered under /module/webapp
+  var homeModule = new Module("/module/webapp/");
+
+  // Routes the root path under the module path /module/webapp
+  homeModule.route("/", new CommandController(function () {
+    return new HomeCommand();
+  }, "index"));
+
+  // Registers the module into the global context.
+  homeModule.register();
+
+  // Creates another module registered under an existing context path.
+  var echoModule = new Module("/module/webapp/");
+
+  // Routes the root path under the module path /module/webapp/echo
+  echoModule.route("/echo", new CommandController(function () {
+    return new EchoCommand();
+  }, "echo"));
+
+  // Registers the module into the global context.
+  echoModule.register();
+```
+
 ### Writing Commands
 Though you can write your own controller, Node Web Modules suggests the command
 pattern in order to handle requests, and this flow is managed by
@@ -181,6 +209,59 @@ This controller expects a simple interface: commands must implement an
 When server starts, the _/module/webapp/_ path will be handled by the
 EchoCommand. Properties in the EchoCommand will be bound to request parameters,
 request body or cookies, depending on the controller and Express configuration.
+
+### View resolvers
+Suppose you want to have a single view path (or paths) per module. It's possible
+to map new view paths and they've got precedence over the default lookup.
+
+```
+  // Creates a module registered under /module/webapp
+  var homeModule = new Module("/module/webapp/");
+
+  // Routes the root path under the module path /module/webapp
+  homeModule.route("/", new CommandController(function () {
+    return new HomeCommand();
+  }, "index"));
+
+  homeModule.addViewPath(__dirname + "/home/views");
+
+  // Registers the module into the global context.
+  homeModule.register();
+```
+
+It complements the ability to register several modules under the same context
+path. Specifying a custom view path provides a namespace for the module, which
+allows to create views with the same name in different modules.
+
+```
+  var VIEW_NAME = "index";
+
+  // Creates a module registered under /module/webapp
+  var homeModule = new Module("/module/webapp/");
+
+  // Routes the root path under the module path /module/webapp
+  homeModule.route("/", new CommandController(function () {
+    return new HomeCommand();
+  }, VIEW_NAME));
+
+  homeModule.addViewPath(__dirname + "/home/views");
+
+  // Registers the module into the global context.
+  homeModule.register();
+
+  // Creates another module registered under an existing context path.
+  var echoModule = new Module("/module/webapp/");
+
+  // Routes the root path under the module path /module/webapp/echo
+  echoModule.route("/echo", new CommandController(function () {
+    return new EchoCommand();
+  }, VIEW_NAME));
+
+  echoModule.addViewPath(__dirname + "/echo/views");
+
+  // Registers the module into the global context.
+  echoModule.register();
+```
 
 Installation
 ------------
