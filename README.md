@@ -182,7 +182,8 @@ pattern in order to handle requests, and this flow is managed by
 CommandController.
 
 This controller expects a simple interface: commands must implement an
-{{{ execute() }}} method and it may return any object.
+```execute()``` method and it may return any object that will be passed to
+the view.
 
 **app/EchoCommand.js**
 ```
@@ -197,18 +198,85 @@ This controller expects a simple interface: commands must implement an
       /** Makes echo.
        * @return {String} Returns echo.
        */
-      execute : function() {
+      execute: function () {
         return {
           message: prefix + this.message
-        }
+        };
       }
     };
   };
 ```
 
-When server starts, the _/module/webapp/_ path will be handled by the
-EchoCommand. Properties in the EchoCommand will be bound to request parameters,
+When server starts, the _/module/webapp/_ path will be handled by
+EchoCommand. Properties in EchoCommand will be bound to request parameters,
 request body or cookies, depending on the controller and Express configuration.
+
+It's possible to defer the command execution by returning ```Model``` objects.
+These objects are kind of __futures__ that allow unattended execution of
+long tasks.
+
+**app/ProcessMessageCommand.js**
+```
+  ProcessMessageCommand = function (prefix) {
+
+    return {
+
+      /** Message to process.
+       * @type String
+       */
+      message: null,
+
+      /** Performs something over the message.
+       * @return {String} Returns the processed message.
+       */
+      execute: function () {
+        var model = new WebModules.Model({
+          message: prefix + this.message
+        });
+
+        // Do some long long task.
+        setTimeout(function () {
+          model.data.message += " (unattended!)";
+          model.resume();
+        }, 2000);
+
+        return model.defer();
+      }
+    };
+  };
+```
+
+It's also possible to force a redirect from commands. Sadly deferred redirects
+are not supported yet, but it will exist in newer versions.
+
+**app/ProcessMessageCommand.js**
+```
+  ProcessMessageCommand = function (prefix) {
+
+    return {
+
+      /** Message to process.
+       * @type String
+       */
+      message: null,
+
+      /** Performs something over the message.
+       * @return {String} Returns the processed message.
+       */
+      execute: function () {
+        var model;
+
+        if (this.message === "bye") {
+          return new WebModules.Redirect("/module/webapp/echo", 302);
+        }
+
+        return new WebModules.Model({
+          message: prefix + this.message
+        });
+      }
+    };
+  };
+```
 
 ### View resolvers
 Suppose you want to have a single view path (or paths) per module. It's possible
