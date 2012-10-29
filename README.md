@@ -4,7 +4,7 @@ Node Web Modules
 Yet Another MVC Framework for NodeJS with Domain Driven Design spirit.
 
 Features:
-  * Unextructured modular development
+  * Unstructured modular development
   * Command-based MVC pattern handler
   * Data binding
   * Smart routing
@@ -131,18 +131,38 @@ It works on top of Express, so general configuration is delegated to Express.
 
 ### Registering Modules
 
-**app/HomeModule.js**
+The basic usage is to register modules and map some endpoints to display
+views without processing in the application layer.
+
+When there's no handler registered for a route, it's considered a simple
+view rendering. By convention it takes the last part of the request context
+path and it tries to map this piece to a view name. For instance,
+
+```
+/module/webapp/foo
+```
+
+will try to render the view _foo_ using the default lookup strategy.
+
+If there's not last part of the context path, it defaults to _index_. For
+instance:
+
+```
+/module/webapp/
+```
+
+will try to render the view _index_ also using the default lookup strategy.
+
+
+**app/index.js**
 ```
   var Module = require("node-web-modules").Module;
-  var CommandController = require("node-web-modules").CommandController;
 
   // Creates a module registered under /module/webapp
   var module = new Module("/module/webapp/");
 
-  // Routes the root path under the module path /module/webapp
-  module.route("/", new CommandController(function () {
-    return new EchoCommand();
-  }, "index"));
+  // Routes all requests to views, without any processing.
+  module.route("*");
 
   // Registers the module into the global context.
   module.register();
@@ -154,31 +174,29 @@ registered.
 
 ```
   // Creates a module registered under /module/webapp
-  var homeModule = new Module("/module/webapp/");
-
-  // Routes the root path under the module path /module/webapp
-  homeModule.route("/", new CommandController(function () {
-    return new HomeCommand();
-  }, "index"));
-
-  // Registers the module into the global context.
-  homeModule.register();
-
-  // Creates another module registered under an existing context path.
   var echoModule = new Module("/module/webapp/");
 
-  // Routes the root path under the module path /module/webapp/echo
+  // This path takes precedence over the homeModule ones.
   echoModule.route("/echo", new CommandController(function () {
     return new EchoCommand();
   }, "echo"));
 
   // Registers the module into the global context.
   echoModule.register();
+
+  // Creates another module registered under an existing context path.
+  var homeModule = new Module("/module/webapp/");
+
+  // Routes all requests to views, without any processing.
+  homeModule.route("*");
+
+  // Registers the module into the global context.
+  homeModule.register();
 ```
 
 ### Writing Commands
 Though you can write your own controller, Node Web Modules suggests the command
-pattern in order to handle requests, and this flow is managed by
+pattern in order to handle requests and this flow is managed by
 CommandController.
 
 This controller expects a simple interface: commands must implement an
@@ -205,6 +223,24 @@ the view.
       }
     };
   };
+```
+
+**app/index.js**
+```
+  var Module = require("node-web-modules").Module;
+  var CommandController = require("node-web-modules").CommandController;
+
+  // Creates a module registered under /module/webapp
+  var module = new Module("/module/webapp/");
+
+  // Routes the root path under the module path /module/webapp and maps
+  // the controller to handle this view.
+  module.route("/", new CommandController(function () {
+    return new EchoCommand();
+  }, "index"));
+
+  // Registers the module into the global context.
+  module.register();
 ```
 
 When server starts, the _/module/webapp/_ path will be handled by
@@ -286,11 +322,10 @@ to map new view paths and they've got precedence over the default lookup.
   // Creates a module registered under /module/webapp
   var homeModule = new Module("/module/webapp/");
 
-  // Routes the root path under the module path /module/webapp
-  homeModule.route("/", new CommandController(function () {
-    return new HomeCommand();
-  }, "index"));
+  // Routes all requests to views, without any processing
+  homeModule.route("*");
 
+  // Maps a view path.
   homeModule.addViewPath(__dirname + "/home/views");
 
   // Registers the module into the global context.
@@ -302,16 +337,11 @@ path. Specifying a custom view path provides a namespace for the module, which
 allows to create views with the same name in different modules.
 
 ```
-  var VIEW_NAME = "index";
-
   // Creates a module registered under /module/webapp
   var homeModule = new Module("/module/webapp/");
 
   // Routes the root path under the module path /module/webapp
-  homeModule.route("/", new CommandController(function () {
-    return new HomeCommand();
-  }, VIEW_NAME));
-
+  homeModule.route("*");
   homeModule.addViewPath(__dirname + "/home/views");
 
   // Registers the module into the global context.
@@ -321,15 +351,32 @@ allows to create views with the same name in different modules.
   var echoModule = new Module("/module/webapp/");
 
   // Routes the root path under the module path /module/webapp/echo
-  echoModule.route("/echo", new CommandController(function () {
-    return new EchoCommand();
-  }, VIEW_NAME));
-
+  echoModule.route("/echo");
   echoModule.addViewPath(__dirname + "/echo/views");
 
   // Registers the module into the global context.
   echoModule.register();
 ```
+
+### Deployment Agent
+One of the useful scenarios for node-web-modules is the ability of having a
+single node instance running on a server with several client modules. It makes
+easier the integration with another services like apache since it only needs to
+forward requests to a single port.
+
+In order to provide this kind of integration there's a Deployment Agent that
+allows to dinamically load modules from a directory.
+
+**index.js**
+```
+var DeploymentAgent = require("node-web-modules").DeploymentAgent;
+
+var agent = new DeploymentAgent(__dirname);
+agent.deploy();
+```
+
+This agent tries to load modules from the specified path, and if any fails, it
+maps the module root endpoint and sends the exception to the client.
 
 Installation
 ------------
