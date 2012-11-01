@@ -43,7 +43,14 @@ architecture:
 |        |<------------------------------/   \------------------|
 |--------|
 ```
+Usage
+-----
+node-web-modules is useful when there exist several features that must work
+isolated under the same node server. Modules aim to isolate features at web
+application level, context isolation is already very well addressed by node itself.
 
+The module abstraction also helps to define an agnostic project structure, which
+is very useful to improve cohesion and leave the technical tier at the bottom.
 
 How it works
 ------------
