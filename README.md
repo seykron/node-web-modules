@@ -5,67 +5,11 @@ Yet Another MVC Framework for NodeJS with Domain Driven Design spirit.
 
 Features:
   * Unstructured modular development
-  * Command-based MVC pattern handler
+  * Command-driven MVC
   * Data binding
   * Smart routing
   * Filters
   * Multi-server: express and socket.io
-
-Command-based MVC pattern handler
----------------------------------
-
-### Design concerns
-If you don't want to read about my experience in software development, please
-just jump to the next section.
-
-After a while working with web applications I learnt that a
-ultra-super-flexible infrastructure that allows to design application flows
-ad-infinitum is a sign to stop and think about what we're addressing.
-
-Though "freedom" may sound cool, it's usually misunderstood and it's
-transformed into a kind of trial by error pattern that may work fine for a
-project that is about to die in few months. However in long-term projects (i.e:
-products) it's essential to write code easy to refactor.
-
-Some words about refactoring:
-
-####**What?**
-  Refactoring is the action of change code as needed (a lot of books can tell
-  you what and how) in order to reduce the time you need to implement new
-  features.
-
-####**Why?**
-  Because design decisions have a not known expiration date, but believe me,
-  they all expire. So refactoring will help you to make your code-
-
-  * More maintainable
-  * Easier to understand
-  * Easier to modify
-  * Easier to add new features
-
-####**When?**
-  I like the so named "rule of three" introduced by Martin Fowler: The first
-  time you do something, you just do it. The second time you do something
-  similar, you wince at the duplication, but you do the duplicate thing
-  anyway. The third time you do something similar, you refactor.
-
-  And the _when_ recommendation also stolen to Martin Fowler:
-  * Refactor When You Add Function
-  * Refactor When You Need to Fix a Bug
-  * Refactor As You Do a Code Review
-
-####**When not?**
-  When you think "it must scale up to the sky".
-
-  When it works without issues and you simply think "I can make it better".
-
-  When you think "it needs optimization" but no one is crying for speed.
-
-  When there's no related feature, bug or planned enhancement.
-
-  Unless you're playing yourself or resolving a challenge, changing code that
-  just work without a conrete reason (a.k.a. new features or
-  issues in production) is a bad idea.
 
 Overall Architecture
 --------------------
@@ -82,7 +26,7 @@ work to collaborations of domain objects in the next layer down. It does not
 have state reflecting the business situation, but it can have state that
 reflects the progress of a task for the user or the program.*
 
-Basically the application layer manages application flows and all operations
+Basically the application layer manages application flows and it operates
 over domain objects. With that in mind, the following graph shows the overall
 architecture:
 
