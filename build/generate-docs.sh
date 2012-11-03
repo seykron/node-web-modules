@@ -8,8 +8,8 @@ if [ -x $JAVA ]; then
     echo "Building API documentation (Java v$version found)...";
 
     $JAVA -jar ./build/jsdoc/jsrun.jar ./build/jsdoc/app/run.js \
-      -t=./build/jsdoc/templates/jsdoc \
-      --d=./docs ./lib
+      -t=./build/jsdoc/templates/codeview \
+      --d=./docs ./lib -D="noGlobal:true"
   else
     echo "java >= 1.6 is required to build documentation with jsdoc-toolkit."
   fi
