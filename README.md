@@ -10,6 +10,8 @@ Features:
   * Smart routing
   * Filters
   * Multi-server: express and socket.io
+  * Custom view paths
+  * Static content mapping
 
 Overall Architecture
 --------------------
@@ -30,7 +32,6 @@ Basically the application layer manages application flows and it operates
 over domain objects. With that in mind, the following graph shows the overall
 architecture:
 
-
 ```
                                            Application Layer
                                   |-----------------------------------|
@@ -43,14 +44,19 @@ architecture:
 |        |<------------------------------/   \------------------|
 |--------|
 ```
+
 Usage
 -----
 node-web-modules is useful when there exist several features that must work
 isolated under the same node server. Modules aim to isolate features at web
-application level, context isolation is already very well addressed by node itself.
+application level, context isolation is already very well addressed by node
+itself.
 
 The module abstraction also helps to define an agnostic project structure, which
 is very useful to improve cohesion and leave the technical tier at the bottom.
+
+Commands allows to write application code only once, transforming result
+depending on routes and module configuration.
 
 How it works
 ------------
@@ -64,12 +70,14 @@ for both. It supports out-of-the-box configuration for Express.
 
 ### Initializing the server
 It works on top of Express, so general configuration is delegated to Express.
+
+**./server.js**
 ```
   var ModuleManager = require("node-web-modules").ModuleManager;
   var express = require("express");
   var app = ModuleManager.app();
 
-  // Configure express.
+  // Configures express.
   app.configure(function(){
     app.use(express.methodOverride());
     app.use(express.bodyParser());
@@ -77,13 +85,16 @@ It works on top of Express, so general configuration is delegated to Express.
     app.use(app.router);
   });
 
+  // Registers modules
+  require("./app"); // app module.
+
   ModuleManager.listen(8000);
 ```
 
 ### Registering Modules
 
 The basic usage is to register modules and map some endpoints to display
-views without processing in the application layer.
+views without any processing in the application layer.
 
 When there's no handler registered for a route, it's considered a simple
 view rendering. By convention it takes the last part of the request context
@@ -104,7 +115,6 @@ instance:
 
 will try to render the view _index_ also using the default lookup strategy.
 
-
 **app/index.js**
 ```
   var Module = require("node-web-modules").Module;
@@ -123,102 +133,100 @@ It's possible to register several modules under the same context path. If the
 composite route collides, it's handled by all modules in the order they're
 registered.
 
+**echo/index.js**
 ```
   // Creates a module registered under /module/webapp
-  var echoModule = new Module("/module/webapp/");
+  var module = new Module("/module/webapp/");
 
-  // This path takes precedence over the homeModule ones.
-  echoModule.route("/echo", new CommandController(function () {
-    return new EchoCommand();
-  }, "echo"));
+  // Maps and endpoint.
+  module.route("/echo")
 
   // Registers the module into the global context.
-  echoModule.register();
+  module.register();
+```
 
+**app/index.js**
+```
   // Creates another module registered under an existing context path.
-  var homeModule = new Module("/module/webapp/");
+  var module = new Module("/module/webapp/");
 
   // Routes all requests to views, without any processing.
-  homeModule.route("*");
+  module.route("*");
 
   // Registers the module into the global context.
-  homeModule.register();
+  module.register();
 ```
 
 ### Writing Commands
 Though you can write your own controller, Node Web Modules suggests the command
-pattern in order to handle requests and this flow is managed by
-CommandController.
+pattern in order to handle requests. This flow is managed by CommandController.
 
 This controller expects a simple interface: commands must implement an
 ```execute()``` method and it may return any object that will be passed to
 the view.
 
-**app/EchoCommand.js**
+**app/HomeCommand.js**
 ```
-  EchoCommand = function (prefix) {
+  HomeCommand = function () {
 
     return {
-      /** Message to echo.
+      /** Prefix for the message.
        * @type String
        */
-      message: null,
+      prefix: null,
 
-      /** Makes echo.
-       * @return {String} Returns echo.
+      /** Sends a hello message.
+       * @return {String} Returns a hello message.
        */
       execute: function () {
         return {
-          message: prefix + this.message
+          message: this.prefix + ": Hello, World!"
         };
       }
     };
   };
 ```
 
+And the command mapping in the module definition:
+
 **app/index.js**
 ```
-  var Module = require("node-web-modules").Module;
-  var CommandController = require("node-web-modules").CommandController;
-
-  // Creates a module registered under /module/webapp
-  var module = new Module("/module/webapp/");
-
-  // Routes the root path under the module path /module/webapp and maps
-  // the controller to handle this view.
-  module.route("/", new CommandController(function () {
-    return new EchoCommand();
-  }, "index"));
+  // Creates another module registered under an existing context path.
+  var module = new Module("/module/webapp/", {
+    routes: {
+      "/": HelloCommand
+    }
+  });
 
   // Registers the module into the global context.
   module.register();
 ```
 
 When server starts, the _/module/webapp/_ path will be handled by
-EchoCommand. Properties in EchoCommand will be bound to request parameters,
-request body or cookies, depending on the controller and Express configuration.
+HomeCommand. Properties in HomeCommand will be bound to request parameters,
+request body and cookies, depending on Express configuration.
 
 It's possible to defer the command execution by returning ```Model``` objects.
-These objects are kind of __futures__ that allow unattended execution of
+These objects are kind of _futures_ that allow unattended execution of
 long tasks.
 
-**app/ProcessMessageCommand.js**
+**app/HomeCommand.js**
 ```
-  ProcessMessageCommand = function (prefix) {
+  HomeCommand = function () {
 
     return {
 
-      /** Message to process.
+      /** Prefix for the message.
        * @type String
        */
-      message: null,
+      prefix: null,
 
-      /** Performs something over the message.
-       * @return {String} Returns the processed message.
+      /** Sends a hello message.
+       * @return {String} Returns a hello message.
        */
       execute: function () {
         var model = new WebModules.Model({
-          message: prefix + this.message
+          message: this.prefix + ": Hello, World!"
         });
 
         // Do some long long task.
@@ -236,77 +244,138 @@ long tasks.
 It's also possible to force a redirect from commands. Sadly deferred redirects
 are not supported yet, but it will exist in newer versions.
 
-**app/ProcessMessageCommand.js**
+Redirects paths may contain placeholders that will be replaced by request
+parameters, request body and cookies depending on Express configuration. Model
+attributes will be also used to replace placeholders.
+
+For instance, assume that ther's a logged-in user and the session cookie
+_userId_ is already set, and the cookieParser in Express is enabled.
+
+**app/HomeCommand.js**
 ```
-  ProcessMessageCommand = function (prefix) {
+  HomeCommand = function (prefix) {
 
     return {
 
-      /** Message to process.
+      /** Prefix for the message.
        * @type String
        */
-      message: null,
+      prefix: null,
 
-      /** Performs something over the message.
-       * @return {String} Returns the processed message.
+      /** Logged-in user id.
+       * @type Number
+       */
+      userId: null,
+
+      /** Sends a hello message.
+       * @return {String} Returns a hello message.
        */
       execute: function () {
-        var model;
+        var model = new WebModules.Model({
+          message: this.prefix + ": Hello, World!"
+        });
 
-        if (this.message === "bye") {
-          return new WebModules.Redirect("/module/webapp/echo", 302);
+        if (this.userId !== null) {
+          return new WebModules.Redirect("/module/webapp/profile/:userId", 302);
         }
 
-        return new WebModules.Model({
-          message: prefix + this.message
-        });
+        // Do some long long task.
+        setTimeout(function () {
+          model.data.message += " (unattended!)";
+          model.resume();
+        }, 2000);
+
+        return model.defer();
       }
     };
   };
 ```
 
-### View resolvers
-Suppose you want to have a single view path (or paths) per module. It's possible
-to map new view paths and they've got precedence over the default lookup.
+### Using Socket.io
+Modules support both Express and Socket.io as backend servers, so it's possible
+to specify the kind of server for a module. Same command can be used to handle
+mappings in both servers.
 
+**app/index.js**
 ```
-  // Creates a module registered under /module/webapp
-  var homeModule = new Module("/module/webapp/");
-
-  // Routes all requests to views, without any processing
-  homeModule.route("*");
-
-  // Maps a view path.
-  homeModule.addViewPath(__dirname + "/home/views");
+  // Creates another module registered under an existing context path.
+  var expressModule = new Module("/module/webapp/", {
+    routes: {
+      "/": HelloCommand
+    }
+  });
 
   // Registers the module into the global context.
-  homeModule.register();
-```
-
-It complements the ability to register several modules under the same context
-path. Specifying a custom view path provides a namespace for the module, which
-allows to create views with the same name in different modules.
-
-```
-  // Creates a module registered under /module/webapp
-  var homeModule = new Module("/module/webapp/");
-
-  // Routes the root path under the module path /module/webapp
-  homeModule.route("*");
-  homeModule.addViewPath(__dirname + "/home/views");
-
-  // Registers the module into the global context.
-  homeModule.register();
+  expressModule.register();
 
   // Creates another module registered under an existing context path.
-  var echoModule = new Module("/module/webapp/");
-
-  // Routes the root path under the module path /module/webapp/echo
-  echoModule.route("/echo");
-  echoModule.addViewPath(__dirname + "/echo/views");
+  var websocketModule = new Module("/module/ws/", {
+    serverType: WebModules.ModuleManager.ServerType.WEB_SOCKET,
+    routes: {
+      "/": HelloCommand
+    }
+  });
 
   // Registers the module into the global context.
-  echoModule.register();
+  websocketModule.register();
+```
+
+The client code for this mapping may look like this:
+
+**view/index.html**
+```
+  ... mark-up ...
+
+  var socket = io.connect('/module/ws/');
+
+  socket.on("connect", function () {
+    socket.emit("message", {
+      prefix: "Websocket: "
+    });
+    socket.on("message", function (data) {
+      // Result object returned by HomeCommand.
+      console.log(data);
+    });
+  });
+```
+
+### View resolvers
+Suppose you want to have a single view path (or paths) per module. It's possible
+to map new view paths and they will have precedence over the default lookup.
+
+**app/index.js**
+```
+  // Creates another module registered under an existing context path.
+  var module = new Module("/module/webapp/", {
+    // Search for views in ./app/views/ instead of ./views/
+    viewPaths: [__dirname + "/views"],
+    routes: {
+      "/": HelloCommand
+    }
+  });
+
+  // Registers the module into the global context.
+  module.register();
+```
+
+### Static Content
+Modules support to expose file system directories as static content.
+
+**app/index.js**
+```
+  // Creates another module registered under an existing context path.
+  var module = new Module("/module/webapp/", {
+    viewPaths: [__dirname + "/views"],
+    routes: {
+      "/": HelloCommand
+    },
+    staticContent: {
+      "/asset": __dirname + "/view/asset"
+    }
+  });
+
+  // Registers the module into the global context.
+  module.register();
 ```
 
 ### Deployment Agent
@@ -318,11 +387,11 @@ forward requests to a single port.
 In order to provide this kind of integration there's a Deployment Agent that
 allows to dinamically load modules from a directory.
 
-**index.js**
+**server.js**
 ```
 var DeploymentAgent = require("node-web-modules").DeploymentAgent;
 
-var agent = new DeploymentAgent(__dirname);
+var agent = new DeploymentAgent(__dirname + "/modules");
 agent.deploy();
 ```
 
